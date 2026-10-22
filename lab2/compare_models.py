@@ -24,15 +24,19 @@ def main():
                         help="Target dataset: 'cifar10' (10 classes) or 'tiny_imagenet' (200 classes)")
     parser.add_argument("--batch-size", type=int, default=1, help="Batch size for complexity profiling (default: 1)")
     parser.add_argument("--reps", type=int, default=50, help="Number of benchmark iterations for latency testing")
+    parser.add_argument("--device", type=str, default=None, choices=["cuda", "cpu"],
+                        help="Device for profiling (default: cuda if available)")
     args = parser.parse_args()
 
     num_classes = 10 if args.dataset == "cifar10" else 200
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    if device == "cuda" and not torch.cuda.is_available():
+        device = "cpu"
     input_size = (args.batch_size, 3, 64, 64)
 
     print("=" * 75)
     print("ELEC 475: Lab 2 - Comprehensive Model Complexity & FLOPs Benchmark")
-    print(f"Device        : {device} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
+    print(f"Device        : {device} ({torch.cuda.get_device_name(0) if device == 'cuda' else 'CPU'})")
     print(f"Dataset       : {args.dataset.upper()} ({num_classes} classes)")
     print(f"Input Shape   : {input_size}")
     print("=" * 75)
@@ -46,6 +50,9 @@ def main():
         "5. AlexNet-64 (BatchNorm)": AlexNet64(num_classes=num_classes, norm_type="bn"),
         "6. Torchvision Zoo AlexNet": get_torchvision_alexnet(num_classes=num_classes),
     }
+
+    # The profiler feeds a dummy tensor on `device`, so the models must be there too
+    models_dict = {name: model.to(device) for name, model in models_dict.items()}
 
     print("Profiling FLOPs, Multiply-Accumulates, and Latency...")
     table_md = compare_model_complexities(models_dict, input_size=input_size, device=device)
