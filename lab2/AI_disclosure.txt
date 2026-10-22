@@ -1,0 +1,4 @@
+﻿ELEC 475 Lab 2 - From LeNet-5 to AlexNet - AI disclosure
+Aytu Tuna, 20354469
+
+AI assistance (Claude) was used in preparing the code, the experiments and the report in this submission.
