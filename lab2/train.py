@@ -11,6 +11,7 @@ Features:
   - Real-time throughput (samples/second) logging
 """
 import os
+import json
 import argparse
 import torch
 import torch.nn as nn
@@ -91,6 +92,8 @@ def main():
     parser.add_argument("--no-augment", action="store_true", help="Disable training data augmentation")
     parser.add_argument("--save-model", type=str, default=None, help="Path to save best model checkpoint (.pth)")
     parser.add_argument("--plot-file", type=str, default=None, help="Path to save loss and accuracy curve plot")
+    parser.add_argument("--history-file", type=str, default=None,
+                        help="Path to save per-epoch metrics as JSON (used by utils.visualization --plot-ablation)")
     # Early Stopping Options
     parser.add_argument("--early-stopping", action="store_true", help="Enable early stopping mechanism")
     parser.add_argument("--early-stopping-metric", type=str, default="val_loss",
@@ -163,6 +166,7 @@ def main():
     # 6. Training Loop with High-Precision CUDA Synchronization Timer
     train_losses, val_losses = [], []
     train_accs, val_accs = [], []
+    val_f1s, epoch_times = [], []
     best_val_acc = 0.0
     best_val_f1 = 0.0
 
@@ -183,6 +187,8 @@ def main():
             val_losses.append(v_loss)
             train_accs.append(tr_acc)
             val_accs.append(v_acc)
+            val_f1s.append(v_f1)
+            epoch_times.append(elapsed)
 
             print(f"{epoch:^7d} | {tr_loss:^11.4f} | {tr_acc:^14.2f} | {v_loss:^10.4f} | {v_acc:^12.2f} | {v_f1:^11.2f} | {elapsed:^9.2f} | {throughput:^8.1f} s/s")
 
@@ -219,6 +225,27 @@ def main():
         model_display = f"{args.model} ({args.norm})" if args.model == "alexnet" else args.model
         plot_training_curves(train_losses, val_losses, train_accs, val_accs,
                              save_path=args.plot_file, model_name=model_display)
+
+    # 8. Save per-epoch history
+    if args.history_file:
+        os.makedirs(os.path.dirname(args.history_file) or ".", exist_ok=True)
+        history = {
+            "args": vars(args),
+            "train_losses": train_losses,
+            "val_losses": val_losses,
+            "train_accs": train_accs,
+            "val_accs": val_accs,
+            "val_f1s": val_f1s,
+            "epoch_times": epoch_times,
+            "best_val_acc": best_val_acc,
+            "best_val_f1": best_val_f1,
+            "total_time": total_timer.elapsed,
+            "params_m": profiler.get_params_millions(),
+            "flops_m": profiler.get_flops_millions(),
+        }
+        with open(args.history_file, "w") as f:
+            json.dump(history, f, indent=2)
+        print(f"Training history saved to: {args.history_file}")
 
 
 if __name__ == "__main__":
