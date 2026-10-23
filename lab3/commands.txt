@@ -1,0 +1,47 @@
+ELEC 475 Lab 3 - Pet Nose Localization - terminal commands
+Aytu Tuna, 20354469
+
+Run all commands from inside this folder.
+
+Setup (Windows PowerShell)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+For an NVIDIA GPU, install the CUDA build of PyTorch first (skip the next line on a CPU-only machine):
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+pip install -r requirements.txt
+$env:PYTHONUTF8=1
+(torchinfo prints box characters that fail in a cp1252 console without this.)
+
+The dataset and the provided weights are not included. Put the oxford-iiit-pet-noses dataset in
+data/oxford-iiit-pet-noses/ and snoutnet.pth, alexnet.pth and vgg16.pth in checkpoints/.
+
+Pre-lab
+python -m utils.dataset
+python -m utils.check_dataset
+python -m models.snoutnet
+
+In-lab (predict.py writes predictions/, which evaluate.py and correct.py read)
+python predict.py --model all
+python evaluate.py
+
+Post-lab Step 1 and 2 - patches and models
+python -m utils.correction_dataset
+python -m models.correction
+
+Post-lab Step 3 - training (seed 42, 20 epochs, batch 64, Adam lr 1e-3, cosine schedule)
+python train_correction.py --no-augment --save-model checkpoints/correction_noaug.pth --plot-file plots/loss_correction_noaug.png
+python train_correction.py --save-model checkpoints/correction_aug.pth --plot-file plots/loss_correction_aug.png
+
+Post-lab Step 4 - correction and evaluation
+python correct.py --checkpoint checkpoints/correction_noaug.pth
+python correct.py --checkpoint checkpoints/correction_aug.pth
+python evaluate.py
+
+Post-lab Step 5 - modified correction model
+python train_correction.py --modified --no-augment --save-model checkpoints/correction_mod_noaug.pth --plot-file plots/loss_correction_mod_noaug.png
+python train_correction.py --modified --save-model checkpoints/correction_mod_aug.pth --plot-file plots/loss_correction_mod_aug.png
+python correct.py --modified --checkpoint checkpoints/correction_mod_noaug.pth
+python correct.py --modified --checkpoint checkpoints/correction_mod_aug.pth
+python evaluate.py
+
+The terminal output of the post-lab runs is in logs/.
