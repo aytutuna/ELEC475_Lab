@@ -16,13 +16,7 @@ def ensemble_mean(preds: List[torch.Tensor]) -> torch.Tensor:
         torch.Tensor, shape (N, 2), float. For each test image, the average of the
         three predictions, in original-image pixels (column 0 is u, column 1 is v)
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 6]: Implement the Mean Ensemble
-    #
-    # Requirements:
-    #   1. For each image, average the three models' predicted (u, v)
-    # ======================================================================
-    pass
+    return torch.stack(preds).mean(dim=0)
 
 
 def ensemble_median(preds: List[torch.Tensor]) -> torch.Tensor:
@@ -36,11 +30,4 @@ def ensemble_median(preds: List[torch.Tensor]) -> torch.Tensor:
         three predictions, taken separately for u (column 0) and v (column 1),
         in original-image pixels
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 6]: Implement the Median Ensemble
-    #
-    # Requirements:
-    #   1. For each image, take the median of the three models' predictions,
-    #      separately for u and for v
-    # ======================================================================
-    pass
+    return torch.stack(preds).median(dim=0).values

@@ -26,14 +26,7 @@ def euclidean_errors(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
         torch.Tensor, shape (N,), float. The Euclidean distance between pred[i] and gt[i],
         in pixels, for each image i
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 3]: Implement the Euclidean Error
-    #
-    # Requirements:
-    #   1. For each image, compute the distance between the predicted (u, v)
-    #      and the ground-truth (u, v)
-    # ======================================================================
-    pass
+    return torch.sqrt(((pred - gt) ** 2).sum(dim=1))
 
 
 def error_stats(errors: torch.Tensor) -> Dict[str, float]:
@@ -47,14 +40,13 @@ def error_stats(errors: torch.Tensor) -> Dict[str, float]:
         dict with exactly the keys "min", "mean", "median", "max" and "std".
         Each value is a Python float (not a tensor).
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 3]: Implement the Summary Statistics
-    #
-    # Requirements:
-    #   1. Compute each statistic with errors.min(), .mean(), .median(), .max() and .std()
-    #   2. Convert each result to a Python float with .item()
-    # ======================================================================
-    pass
+    return {
+        "min": errors.min().item(),
+        "mean": errors.mean().item(),
+        "median": errors.median().item(),
+        "max": errors.max().item(),
+        "std": errors.std().item(),
+    }
 
 
 def baseline_predictions(orig_size: torch.Tensor, train_file: str, img_dir: str) -> torch.Tensor:
@@ -71,20 +63,18 @@ def baseline_predictions(orig_size: torch.Tensor, train_file: str, img_dir: str)
         torch.Tensor, shape (N, 2), float. Baseline prediction (u, v) for each test
         image, in original-image pixels: column 0 is u, column 1 is v
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 3]: Implement the Mean-Location Baseline
-    #
-    # Requirements:
-    #   1. For each training image in train_file, compute the normalized snout
-    #      position (u / W, v / H): the snout position as a fraction of the image
-    #      width and height. Get (W, H) with Image.open(os.path.join(img_dir, name)).size
-    #   2. Average the normalized snout positions over the whole training set.
-    #      This gives one average normalized snout position, (u_avg, v_avg)
-    #   3. Convert the average normalized snout position into a pixel position for
-    #      each test image: (u_avg * W, v_avg * H), using that test image's (W, H)
-    #      from orig_size. This is the baseline's prediction for that image
-    # ======================================================================
-    pass
+    normalized = []
+    with open(train_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            name, uv = line.split(",", 1)
+            u, v = uv.strip().strip('"').strip("()").split(",")
+            w, h = Image.open(os.path.join(img_dir, name.strip())).size
+            normalized.append([float(u) / w, float(v) / h])
+    avg = torch.tensor(normalized).mean(dim=0)
+    return avg * orig_size
 
 
 def ced_curve(errors: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -100,12 +90,10 @@ def ced_curve(errors: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
           y : y[k-1] = 100 * k / N for k = 1, ..., N, the percentage of predictions
               with an error of at most x[k-1]. The last value is 100
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 4]: Implement the CED Curve
-    #
-    # Hint: use torch.sort
-    # ======================================================================
-    pass
+    x, _ = torch.sort(errors)
+    n = errors.numel()
+    y = 100.0 * torch.arange(1, n + 1, dtype=torch.float32) / n
+    return x, y
 
 
 def best_worst_indices(errors: torch.Tensor, k: int = 4) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -122,12 +110,9 @@ def best_worst_indices(errors: torch.Tensor, k: int = 4) -> Tuple[torch.Tensor, 
           best  : indices of the k smallest errors, smallest error first
           worst : indices of the k largest errors, largest error first
     """
-    # ======================================================================
-    # TODO [IN-LAB STEP 5]: Implement the Best and Worst Indices
-    #
-    # Hint: use torch.argsort
-    # ======================================================================
-    pass
+    best = torch.argsort(errors)[:k]
+    worst = torch.argsort(errors, descending=True)[:k]
+    return best, worst
 
 
 def print_results(rows: Dict[str, Dict]):
