@@ -2,3 +2,7 @@ data/
 .venv/
 __pycache__/
 *.pyc
+lab3/predictions/
+lab3/checkpoints/snoutnet.pth
+lab3/checkpoints/alexnet.pth
+lab3/checkpoints/vgg16.pth
