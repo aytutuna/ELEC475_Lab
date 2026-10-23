@@ -1,0 +1,4 @@
+﻿ELEC 475 Lab 3 - Pet Nose Localization - AI disclosure
+Aytu Tuna, 20354469
+
+AI assistance (Claude) was used in preparing the code, the experiments and the report in this submission.
