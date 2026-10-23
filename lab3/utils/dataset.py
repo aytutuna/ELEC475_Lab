@@ -37,36 +37,30 @@ class PetNoseDataset(Dataset):
         self.img_dir = Path(root) / "images-original" / "images"
         label_file = Path(root) / f"{split}_noses.txt"
 
-        # ======================================================================
-        # TODO [PRE-LAB TASK 3]: Parse the Label File
-        #
-        # Requirements:
-        #   1. Read every non-empty line of label_file
-        #   2. Split each line into the image file name and the "(u, v)" string
-        #   3. Strip the quotes and brackets, and convert u and v to float
-        #   4. Store the results in self.samples as a list of (name, u, v) tuples
-        # ======================================================================
         self.samples = []
+        with open(label_file) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                # beagle_145.jpg,"(198, 304)" -> split on the first comma only
+                name, coords = line.split(",", 1)
+                u, v = coords.strip().strip('"').strip("()").split(",")
+                self.samples.append((name, float(u), float(v)))
 
     def __len__(self) -> int:
         return len(self.samples)
 
     def __getitem__(self, idx: int):
-        # ======================================================================
-        # TODO [PRE-LAB TASK 3]: Load, Resize and Normalize One Sample
-        #
-        # Requirements:
-        #   1. Open the image with Image.open(path).convert("RGB")
-        #      (a few images are grayscale, palette or RGBA)
-        #   2. Record the original size: w, h = img.size  (PIL returns (W, H))
-        #   3. Resize with img.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)
-        #      (the provided weights were trained with exactly this resize)
-        #   4. Rescale the label: u * IMG_SIZE / w and v * IMG_SIZE / h
-        #   5. Convert with TF.to_tensor, then TF.normalize with MEAN and STD
-        #   6. Return (image, label, orig_size) as float32 tensors,
-        #      with label = [u, v] and orig_size = [w, h]
-        # ======================================================================
-        pass
+        name, u, v = self.samples[idx]
+        img = Image.open(self.img_dir / name).convert("RGB")
+        w, h = img.size
+        img = img.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)
+
+        image = TF.normalize(TF.to_tensor(img), MEAN, STD)
+        label = torch.tensor([u * IMG_SIZE / w, v * IMG_SIZE / h], dtype=torch.float32)
+        orig_size = torch.tensor([w, h], dtype=torch.float32)
+        return image, label, orig_size
 
 
 def denormalize(img: torch.Tensor) -> torch.Tensor:
